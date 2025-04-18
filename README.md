@@ -106,11 +106,14 @@ x = cp.Variable(n)
 objective = cp.Minimize(0.5 * cp.quad_form(x, P) + q.T @ x)
 
 # Define constraints
-cvar_constraint = cp.cvar(A @ x, beta) <= kappa
-box_constraints = [-np.ones(n) <= x, x <= np.ones(n)]
+constraints = [
+    cp.cvar(A @ x, beta) <= kappa,  # CVaR constraint
+    -np.ones(n) <= x,               # Lower bound
+    x <= np.ones(n)                 # Upper bound
+]
 
 # Define and solve problem
-prob = cp.Problem(objective, [cvar_constraint] + box_constraints)
+prob = cp.Problem(objective, constraints)
 prob.solve(solver=cp.MOSEK)
 
 print(f"Optimal value: {prob.value:.6f}")
@@ -169,10 +172,14 @@ d = 7.0  # Upper bound on sum
 # Define variable and problem
 z = cp.Variable(len(v))
 objective = cp.Minimize(cp.sum_squares(z - v))
-constraint = cp.sum_largest(z, k) <= d
+
+# Define constraints
+constraints = [
+    cp.sum_largest(z, k) <= d  # Sum-k-largest constraint
+]
 
 # Solve the problem
-prob = cp.Problem(objective, [constraint])
+prob = cp.Problem(objective, constraints)
 prob.solve(solver=cp.MOSEK)
 
 print(f"Original vector: {v}")
