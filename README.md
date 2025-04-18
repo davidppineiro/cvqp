@@ -1,6 +1,6 @@
 # CVQP
 
-[![PyPI version](https://badge.fury.io/py/cvqp.svg)](https://badge.fury.io/py/cvqp)
+[![PyPI version](https://img.shields.io/pypi/v/cvqp.svg)](https://pypi.org/project/cvqp/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 A Python implementation of an operator splitting method for solving large-scale CVaR-constrained quadratic programs, as described in our [paper](https://web.stanford.edu/~boyd/papers/cvar_qp.html).
