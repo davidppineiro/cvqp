@@ -37,7 +37,7 @@ $$
 \begin{align}
 \text{minimize} & \quad \frac{1}{2}x^TPx + q^Tx \\
 \text{subject to} & \quad \phi_\beta(Ax) \leq \kappa \\
-                  & \quad l \leq Bx \leq u
+                  & \quad l \leq Bx \leq u,
 \end{align}
 $$
 
