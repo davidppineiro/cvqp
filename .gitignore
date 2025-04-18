@@ -1,0 +1,61 @@
+# Build artifacts
+build/
+*.so
+*.o
+*.obj
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+
+# Docker files
+Dockerfile
+.docker/
+docker-compose.yml
+*.env
+.env
+
+# Container specific
+*.deb
+*.tar
+*.gz
+.container_history
+
+# Docker build context
+.dockerignore
+
+# IDE and Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Virtual environments
+venv/
+env/
+.env/
+.venv/
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Logs
+*.log
+logs/
+
+# Local development
+local_settings.py
+db.sqlite3
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# Additional Python build artifacts
+.tox/
+.eggs/
+*.egg
