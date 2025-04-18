@@ -2,10 +2,10 @@
 name = "cvqp"
 version = "0.1.0"
 description = "A Python implementation of the CVQP solver for CVaR-constrained quadratic programs"
-authors = ["David Perez Pineiro", "Eric Luxenberg"]
+authors = ["David Pérez Piñeiro", "Eric Luxenberg"]
 license = "Apache-2.0"
 readme = "README.md"
-repository = "https://github.com/davidper/cvqp"
+repository = "https://github.com/cvxgrp/cvqp"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
