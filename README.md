@@ -129,7 +129,7 @@ The CVQP package also provides an efficient function for projecting onto the set
 $$
 \begin{align}
 \text{minimize} & \quad \lVert v - z \rVert_2^2 \\
-\text{subject to} & \quad f_k(z) \leq d
+\text{subject to} & \quad f_k(z) \leq d,
 \end{align}
 $$
 
