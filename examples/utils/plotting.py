@@ -7,15 +7,8 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 # Import benchmark result types
-try:
-    from benchmark_proj import ProjectionResults
-    from benchmark_cvqp import BenchmarkResults
-except ImportError:
-    try:
-        from examples.benchmark_proj import ProjectionResults
-        from examples.benchmark_cvqp import BenchmarkResults
-    except ImportError:
-        pass  # Allow import in package context
+from benchmark_proj import ProjectionResults
+from benchmark_cvqp import BenchmarkResults
 
 
 def setup_plotting_style():
@@ -43,50 +36,29 @@ def setup_plotting_style():
     })
 
 
-def load_proj_results(filename="proj.pkl", data_dir=None):
-    """Load projection benchmark results from pickle file."""
+def load_results(filename, data_dir=None, flatten=False):
+    """Load benchmark results from pickle file."""
     if data_dir is None:
         data_dir = Path(__file__).parent.parent / "data"
     else:
         data_dir = Path(data_dir)
         
     file_path = data_dir / filename
-    if not file_path.exists():
-        print(f"File not found: {file_path}")
-        return []
+    
+    with open(file_path, "rb") as f:
+        data = pickle.load(f)
+        results = data["results"]
         
-    try:
-        with open(file_path, "rb") as f:
-            data = pickle.load(f)
-            # Flatten the dict of lists into a single list
+        # Flatten dict of lists if needed (for projection results)
+        if flatten:
             all_results = []
-            for m_results in data["results"].values():
+            for m_results in results.values():
                 all_results.extend(m_results)
-        return all_results
-    except Exception as e:
-        print(f"Error loading projection results: {e}")
-        return []
-
-
-def load_cvqp_results(problem_name, data_dir=None):
-    """Load CVQP benchmark results for a specific problem."""
-    if data_dir is None:
-        data_dir = Path(__file__).parent.parent / "data"
-    else:
-        data_dir = Path(data_dir)
+            return all_results
         
-    data_path = data_dir / f"{problem_name.lower()}.pkl"
-    if not data_path.exists():
-        print(f"File not found: {data_path}")
-        return []
+        return results
 
-    try:
-        with open(data_path, "rb") as f:
-            data = pickle.load(f)
-        return data["results"]
-    except Exception as e:
-        print(f"Error loading {problem_name} results: {e}")
-        return []
+
 
 
 def plot_proj_benchmarks(results, save_figures=False):
