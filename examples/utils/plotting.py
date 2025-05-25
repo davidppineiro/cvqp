@@ -18,12 +18,12 @@ from IPython.display import display
 
 # Import benchmark result types
 try:
-    from examples.benchmark_proj import ProjectionResults
-    from examples.benchmark_cvqp import BenchmarkResults
+    from benchmark_proj import ProjectionResults
+    from benchmark_cvqp import BenchmarkResults
 except ImportError:
     try:
-        from benchmark_proj import ProjectionResults
-        from benchmark_cvqp import BenchmarkResults
+        from examples.benchmark_proj import ProjectionResults
+        from examples.benchmark_cvqp import BenchmarkResults
     except ImportError:
         pass  # Allow import in package context
 

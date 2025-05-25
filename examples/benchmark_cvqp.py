@@ -11,7 +11,7 @@ import numpy as np
 import warnings
 
 from cvqp import CVQP, CVQPConfig, CVQPResults, CVQPParams
-from examples.problems import *
+from problems import *
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(message)s", datefmt="%b %d %H:%M:%S"
