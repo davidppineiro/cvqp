@@ -22,7 +22,7 @@ def setup_plotting_style():
         "legend.fontsize": 12,
         "figure.figsize": (6, 4.5),
         "lines.linewidth": 2,
-        "lines.markersize": 8,
+        "lines.markersize": 6,
         "axes.grid": True,
         "grid.alpha": 0.35,
         "grid.linestyle": ":",
@@ -67,7 +67,8 @@ def plot_proj_benchmarks(results, save_figures=False):
         print("No benchmark results found.")
         return {}
         
-    markers = {"Ours": "o", "MOSEK": "s", "CLARABEL": "^"}
+    markers = {"Ours": "o", "MOSEK": "o", "CLARABEL": "o"}
+    colors = {"Ours": "#2E86AB", "MOSEK": "#A23B72", "CLARABEL": "#F18F01"}
     figs_dir = Path(__file__).parent.parent / "figs"
     if save_figures:
         figs_dir.mkdir(exist_ok=True)
@@ -93,7 +94,7 @@ def plot_proj_benchmarks(results, save_figures=False):
 
             ax.plot(x_values, times,
                    label=solver if solver == "Ours" else solver.upper(),
-                   marker=markers[solver], markersize=8, linestyle="-", 
+                   marker=markers[solver], color=colors[solver], linestyle="-", 
                    markeredgewidth=1)
 
         # Configure plot
@@ -121,7 +122,8 @@ def plot_cvqp_benchmarks(results, save_figures=False):
         print("No benchmark results found.")
         return {}
         
-    markers = {"CVQP": "o", "MOSEK": "s", "CLARABEL": "^"}
+    markers = {"CVQP": "o", "MOSEK": "o", "CLARABEL": "o"}
+    colors = {"CVQP": "#2E86AB", "MOSEK": "#A23B72", "CLARABEL": "#F18F01"}
     problem_name = results[0].problem.lower()
     
     figs_dir = Path(__file__).parent.parent / "figs"
@@ -149,7 +151,7 @@ def plot_cvqp_benchmarks(results, save_figures=False):
 
             ax.plot(x_values, times,
                    label=solver if solver == "Ours" else solver.upper(),
-                   marker=markers[solver], markersize=8, linestyle="-",
+                   marker=markers[solver], color=colors[solver], linestyle="-",
                    markeredgewidth=1)
 
         # Configure plot
