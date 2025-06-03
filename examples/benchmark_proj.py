@@ -146,14 +146,12 @@ class ProjectionBenchmark:
         tau_list: list[float],
         n_instances: int = 50,
         solvers: list[str] = ["Ours", "MOSEK", "CLARABEL"],
-        n_consecutive_failures: int | None = None,
         base_seed: int = 42,
     ):
         self.vector_sizes = vector_sizes
         self.tau_list = tau_list
         self.n_instances = n_instances
         self.solvers = solvers
-        self.n_consecutive_failures = n_consecutive_failures
         self.base_seed = base_seed
         self.results = {size: [] for size in vector_sizes}
         self.failed_solvers = set()
@@ -237,14 +235,6 @@ class ProjectionBenchmark:
             
             times.append(solve_time)
             statuses.append(status)
-            
-            # Simplified consecutive failure check
-            if (self.n_consecutive_failures and 
-                len(times) >= self.n_consecutive_failures and
-                all(np.isnan(t) for t in times[-self.n_consecutive_failures:])):
-                logging.warning(f"    {solver:<8s}: stopping after {self.n_consecutive_failures} consecutive failures")
-                self.failed_solvers.add(solver)
-                break
 
         # Create benchmark result
         result = ProjectionResults(
@@ -321,7 +311,6 @@ def main():
         tau_list=[DEFAULT_TAU],
         n_instances=5,             
         solvers=["Ours", "MOSEK", "CLARABEL"],
-        n_consecutive_failures=None,
     )
     runner.run_experiments()
 

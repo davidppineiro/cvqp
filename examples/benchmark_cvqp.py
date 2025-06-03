@@ -118,7 +118,6 @@ class CVQPBenchmark:
         n_scenarios_list: list[int],
         solvers: list[str],
         base_seed: int = 42,
-        n_consecutive_failures: int | None = None,
     ):
         self.problems = problems
         self.n_instances = n_instances
@@ -126,7 +125,6 @@ class CVQPBenchmark:
         self.n_scenarios_list = n_scenarios_list
         self.solvers = solvers
         self.base_seed = base_seed
-        self.n_consecutive_failures = n_consecutive_failures
         self.results = {p.name: [] for p in problems}
         self.failed_solvers = set()
         
@@ -216,14 +214,6 @@ class CVQPBenchmark:
             
             times.append(solve_time)
             statuses.append(status)
-            
-            # Simplified consecutive failure check
-            if (self.n_consecutive_failures and 
-                len(times) >= self.n_consecutive_failures and
-                all(np.isnan(t) for t in times[-self.n_consecutive_failures:])):
-                logging.warning(f"    {solver:<8s}: stopping after {self.n_consecutive_failures} consecutive failures")
-                self.failed_solvers.add(solver)
-                break
 
         # Create benchmark result
         result = BenchmarkResults(
@@ -304,8 +294,7 @@ def main():
         n_instances=3,
         n_vars_list=[2000],
         n_scenarios_list=[int(x) for x in [1e3, 3e3, 1e4, 3e4, 1e5, 3e5, 1e6]],
-        solvers=["CVQP", "MOSEK", "CLARABEL"],       
-        n_consecutive_failures=1,
+        solvers=["CVQP", "MOSEK", "CLARABEL"],
     )
     portfolio_runner.run_experiments()
 
@@ -315,7 +304,6 @@ def main():
         n_vars_list=[500],
         n_scenarios_list=[int(x) for x in [1e4, 3e4, 1e5, 3e5, 1e6, 3e6, 1e7]],
         solvers=["CVQP", "MOSEK", "CLARABEL"],
-        n_consecutive_failures=1,
     )
     qr_runner.run_experiments()
 
