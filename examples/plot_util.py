@@ -7,8 +7,15 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 # Import benchmark result types
-from benchmark_proj import ProjectionResults
-from benchmark_cvqp import BenchmarkResults
+try:
+    from benchmark_proj import ProjectionResults
+    from benchmark_cvqp import BenchmarkResults
+except ImportError:
+    try:
+        from examples.benchmark_proj import ProjectionResults
+        from examples.benchmark_cvqp import BenchmarkResults
+    except ImportError:
+        pass  # Allow import in package context
 
 
 def setup_plotting_style():
@@ -39,7 +46,7 @@ def setup_plotting_style():
 def load_results(filename, data_dir=None, flatten=False):
     """Load benchmark results from pickle file."""
     if data_dir is None:
-        data_dir = Path(__file__).parent.parent / "data"
+        data_dir = Path(__file__).parent / "data"
     else:
         data_dir = Path(data_dir)
         
@@ -59,8 +66,6 @@ def load_results(filename, data_dir=None, flatten=False):
         return results
 
 
-
-
 def plot_proj_benchmarks(results, save_figures=False):
     """Create plots comparing solver performance for projection benchmarks."""
     if not results:
@@ -69,7 +74,7 @@ def plot_proj_benchmarks(results, save_figures=False):
         
     markers = {"Ours": "o", "MOSEK": "o", "CLARABEL": "o"}
     colors = {"Ours": "#2E86AB", "MOSEK": "#A23B72", "CLARABEL": "#F18F01"}
-    figs_dir = Path(__file__).parent.parent / "figs"
+    figs_dir = Path(__file__).parent / "figs"
     if save_figures:
         figs_dir.mkdir(exist_ok=True)
 
@@ -126,7 +131,7 @@ def plot_cvqp_benchmarks(results, save_figures=False):
     colors = {"CVQP": "#2E86AB", "MOSEK": "#A23B72", "CLARABEL": "#F18F01"}
     problem_name = results[0].problem.lower()
     
-    figs_dir = Path(__file__).parent.parent / "figs"
+    figs_dir = Path(__file__).parent / "figs"
     if save_figures:
         figs_dir.mkdir(exist_ok=True)
 

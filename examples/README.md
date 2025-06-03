@@ -32,4 +32,4 @@ jupyter notebook benchmarks.ipynb
 
 ## Utilities
 
-The [`utils/`](utils/) directory contains visualization and data processing utilities for generating benchmark plots and tables.
+The `plot_util.py` file contains visualization utilities for generating benchmark plots.
