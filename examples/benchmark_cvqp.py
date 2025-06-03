@@ -301,23 +301,23 @@ def main():
     """Run CVQP benchmark experiments."""
     portfolio_runner = CVQPBenchmark(
         problems=[PortfolioOptimization()],
-        n_instances=1,
-        n_vars_list=[int(x) for x in [500]],
-        n_scenarios_list=[int(x) for x in [1e3, 3e3]],
-        solvers=["CVQP", "CLARABEL"],       
+        n_instances=3,
+        n_vars_list=[2000],
+        n_scenarios_list=[int(x) for x in [1e3, 3e3, 1e4, 3e4, 1e5, 3e5, 1e6]],
+        solvers=["CVQP", "MOSEK", "CLARABEL"],       
         n_consecutive_failures=1,
     )
     portfolio_runner.run_experiments()
 
-    # qr_runner = CVQPBenchmark(
-    #     problems=[QuantileRegression()],
-    #     n_instances=1,
-    #     n_vars_list=[int(x) for x in [500]],
-    #     n_scenarios_list=[int(x) for x in [1e4, 3e4, 1e5, 3e5, 1e6, 3e6, 1e7]],
-    #     solvers=["CVQP", "MOSEK", "CLARABEL"],
-    #     n_consecutive_failures=1,
-    # )
-    # qr_runner.run_experiments()
+    qr_runner = CVQPBenchmark(
+        problems=[QuantileRegression()],
+        n_instances=3,
+        n_vars_list=[500],
+        n_scenarios_list=[int(x) for x in [1e4, 3e4, 1e5, 3e5, 1e6, 3e6, 1e7]],
+        solvers=["CVQP", "MOSEK", "CLARABEL"],
+        n_consecutive_failures=1,
+    )
+    qr_runner.run_experiments()
 
 
 if __name__ == "__main__":

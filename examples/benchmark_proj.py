@@ -317,10 +317,10 @@ class ProjectionBenchmark:
 def main():
     """Run projection benchmark experiments."""
     runner = ProjectionBenchmark(
-        vector_sizes=[int(x) for x in [1e4, 3e4]],
+        vector_sizes=[int(x) for x in [1e4, 3e4, 1e5, 3e5, 1e6, 3e6, 1e7]],
         tau_list=[DEFAULT_TAU],
         n_instances=5,             
-        solvers=["Ours", "CLARABEL"],
+        solvers=["Ours", "MOSEK", "CLARABEL"],
         n_consecutive_failures=None,
     )
     runner.run_experiments()
