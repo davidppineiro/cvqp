@@ -21,7 +21,7 @@ python benchmark_proj.py
 python benchmark_cvqp.py
 ```
 
-Results are saved to the `data/` directory and can be visualized using the `benchmarks.ipynb` notebook:
+Results are saved to the `results/` directory and can be visualized using the `benchmarks.ipynb` notebook:
 
 ```bash
 # Open the visualization notebook

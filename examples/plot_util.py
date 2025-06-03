@@ -46,7 +46,7 @@ def setup_plotting_style():
 def load_results(filename, data_dir=None, flatten=False):
     """Load benchmark results from pickle file."""
     if data_dir is None:
-        data_dir = Path(__file__).parent / "data"
+        data_dir = Path(__file__).parent / "results"
     else:
         data_dir = Path(data_dir)
         

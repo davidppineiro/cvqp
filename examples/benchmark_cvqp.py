@@ -138,7 +138,7 @@ class CVQPBenchmark:
 
     def run_experiments(self):
         """Run all experiments and store results."""
-        self._setup_data_dir()
+        self._setup_results_dir()
         self._log_experiment_info()
         
         for problem in self.problems:
@@ -148,10 +148,10 @@ class CVQPBenchmark:
         
         self._log_final_summary()
 
-    def _setup_data_dir(self):
-        """Create data directory if it doesn't exist."""
-        data_dir = Path(__file__).parent / "data"
-        data_dir.mkdir(exist_ok=True)
+    def _setup_results_dir(self):
+        """Create results directory if it doesn't exist."""
+        results_dir = Path(__file__).parent / "results"
+        results_dir.mkdir(exist_ok=True)
 
     def _log_experiment_info(self):
         """Log experiment setup information."""
@@ -291,8 +291,8 @@ class CVQPBenchmark:
             "results": self.results[problem_name],
         }
         
-        data_dir = Path(__file__).parent / "data"
-        filename = data_dir / f"{problem_name.lower()}.pkl"
+        results_dir = Path(__file__).parent / "results"
+        filename = results_dir / f"{problem_name.lower()}.pkl"
         with open(filename, "wb") as f:
             pickle.dump(results_dict, f)
 
