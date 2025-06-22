@@ -3,7 +3,7 @@ import pybind11
 
 ext_modules = [
     Extension(
-        "cvqp.libs.mybindings",  # Changed to be part of the cvqp package
+        "cvqp.libs.mybindings",
         ["cvqp/libs/mybindings.cpp", "cvqp/libs/sum_largest_proj.cpp"],
         include_dirs=[pybind11.get_include()],
         extra_compile_args=["-std=c++11", "-O3"],
