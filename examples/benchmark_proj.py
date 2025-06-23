@@ -13,9 +13,7 @@ import warnings
 
 from cvqp.projection import proj_sum_largest
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s %(message)s", datefmt="%b %d %H:%M:%S"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s", datefmt="%b %d %H:%M:%S")
 warnings.filterwarnings("ignore", module="cvxpy")
 
 MAX_TIME_LIMIT = 7200
@@ -29,6 +27,7 @@ SOLVER_CONFIGS = {
 @dataclass
 class Projection:
     """Single instance of a sum-k-largest projection problem."""
+
     v: np.ndarray
     k: int
     d: float
@@ -40,6 +39,7 @@ class Projection:
 @dataclass
 class ProjectionResults:
     """Results from benchmarking a solver on multiple problem instances."""
+
     solver: str
     m: int
     tau: float
@@ -65,7 +65,7 @@ class ProjectionResults:
     @property
     def num_total(self) -> int:
         return len(self.times)
-    
+
 
 def solve_instance_cvxpy(instance: Projection, solver: str) -> tuple[float, str]:
     """Solve a projection instance using a CVXPY-supported solver."""
@@ -85,7 +85,7 @@ def solve_instance_cvxpy(instance: Projection, solver: str) -> tuple[float, str]
 
         if prob.status in ["optimal", "optimal_inaccurate"]:
             return prob._solve_time, prob.status
-        
+
         logging.debug(f"Solver {solver} status: {prob.status}")
         return np.nan, prob.status
 
@@ -121,10 +121,10 @@ def generate_instance(vector_size: int, tau: float, seed: int) -> Projection:
 
     # Number of largest elements to bound
     k = int(np.ceil((1 - beta) * vector_size))
-    
+
     # Random vector to project
     v = rng.uniform(0, 1, vector_size)
-    
+
     # Bound value (tau controls how tight the constraint is)
     d = tau * cp.sum_largest(v, k).value
 
@@ -155,7 +155,7 @@ class ProjectionBenchmark:
         self.base_seed = base_seed
         self.results = {size: [] for size in vector_sizes}
         self.failed_solvers = set()
-        
+
         # Progress tracking
         self.total_combinations = len(vector_sizes) * len(tau_list)
         self.current_combination = 0
@@ -166,11 +166,11 @@ class ProjectionBenchmark:
         """Run all experiments and store results."""
         self._setup_results_dir()
         self._log_experiment_info()
-        
+
         for vector_size in self.vector_sizes:
             logging.info(f"Vector size: {vector_size}")
             self._run_size_experiments(vector_size)
-            
+
         self._log_final_summary()
 
     def _setup_results_dir(self):
@@ -194,29 +194,28 @@ class ProjectionBenchmark:
         """Run experiments for a single vector size."""
         for tau in self.tau_list:
             self.current_combination += 1
-            
+
             # Progress and combination info
-            logging.info(f"  [{self.current_combination}/{self.total_combinations}] "
-                       f"vector_size={vector_size:.0e}, tau={tau}")
-            
+            logging.info(f"  [{self.current_combination}/{self.total_combinations}] " f"vector_size={vector_size:.0e}, tau={tau}")
+
             # Run all solvers for this combination
             size_results = {}
             for solver in self.solvers:
                 if solver in self.failed_solvers:
                     logging.info(f"    {solver:<8s}: SKIPPED (previous failures)")
                     continue
-                
+
                 result = self._benchmark_solver(vector_size, tau, solver)
                 if result:
                     size_results[solver] = result
                     self.results[vector_size].append(result)
                     self.successful_benchmarks += 1
-                
+
                 self.total_benchmarks += 1
-            
+
             if size_results:
                 self._log_speedups(size_results)
-            
+
             # Save results after each combination
             self._save_results()
 
@@ -224,15 +223,15 @@ class ProjectionBenchmark:
         """Benchmark a single solver on a problem combination."""
         times = []
         statuses = []
-        
+
         for i in range(self.n_instances):
             # Generate problem instance
             seed = get_reproducible_seed(vector_size, tau, i, self.base_seed)
             instance = generate_instance(vector_size, tau, seed)
-            
+
             # Solve instance
             solve_time, status = solve_instance(instance, solver)
-            
+
             times.append(solve_time)
             statuses.append(status)
 
@@ -247,10 +246,7 @@ class ProjectionBenchmark:
 
         # Log results
         if result.num_success > 0:
-            logging.info(
-                f"    {solver:<8s}: {result.avg_time:.2e}s ± {result.std_time:.2e}s "
-                f"({result.num_success}/{result.num_total} OK)"
-            )
+            logging.info(f"    {solver:<8s}: {result.avg_time:.2e}s ± {result.std_time:.2e}s " f"({result.num_success}/{result.num_total} OK)")
             return result
         else:
             logging.error(f"    {solver:<8s}: FAILED (all {result.num_total} attempts)")
@@ -261,15 +257,15 @@ class ProjectionBenchmark:
         """Calculate and log speedups relative to Ours."""
         if "Ours" not in size_results:
             return
-        
+
         our_time = size_results["Ours"].avg_time
         speedups = []
-        
+
         for solver, result in size_results.items():
             if solver != "Ours" and result.avg_time > 0:
                 speedup = result.avg_time / our_time
                 speedups.append(f"{solver}: {speedup:.1f}x")
-        
+
         if speedups:
             logging.info(f"    {'Speedup':<8s}: {', '.join(speedups)}")
 
@@ -282,12 +278,12 @@ class ProjectionBenchmark:
         logging.info(f"Successful: {self.successful_benchmarks}")
         logging.info(f"Failed: {self.total_benchmarks - self.successful_benchmarks}")
         logging.info(f"Success rate: {self.successful_benchmarks/self.total_benchmarks*100:.1f}%")
-        
+
         if self.failed_solvers:
             logging.info(f"Failed solvers: {sorted(self.failed_solvers)}")
         else:
             logging.info("All solvers completed successfully!")
-        
+
         logging.info("=" * 60)
 
     def _save_results(self):
@@ -309,7 +305,7 @@ def main():
     runner = ProjectionBenchmark(
         vector_sizes=[int(x) for x in [1e4, 3e4, 1e5, 3e5, 1e6, 3e6, 1e7]],
         tau_list=[DEFAULT_TAU],
-        n_instances=5,             
+        n_instances=10,
         solvers=["Ours", "MOSEK", "CLARABEL"],
     )
     runner.run_experiments()

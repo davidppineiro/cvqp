@@ -10,12 +10,10 @@ import cvxpy as cp
 import numpy as np
 import warnings
 
-from cvqp import CVQP, CVQPConfig, CVQPResults, CVQPParams
-from problems import *
+from cvqp import CVQP, CVQPResults, CVQPParams
+from problems import CVQPProblem, PortfolioOptimization, QuantileRegression
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s %(message)s", datefmt="%b %d %H:%M:%S"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s", datefmt="%b %d %H:%M:%S")
 warnings.filterwarnings("ignore", module="cvxpy")
 
 MAX_TIME_LIMIT = 7200
@@ -28,6 +26,7 @@ SOLVER_CONFIGS = {
 @dataclass
 class BenchmarkResults:
     """Store benchmark results for a specific problem size and solver."""
+
     problem: str
     solver: str
     n_vars: int
@@ -55,12 +54,12 @@ class BenchmarkResults:
     @property
     def num_total(self) -> int:
         return len(self.times)
-    
+
 
 def solve_cvqp(params: CVQPParams) -> tuple[float | None, str, CVQPResults | None]:
     """Solve using CVQP solver."""
     try:
-        solver = CVQP(params, CVQPConfig())
+        solver = CVQP(params)
         results = solver.solve()
         return results.solve_time, results.problem_status, results
     except Exception as e:
@@ -72,7 +71,7 @@ def solve_cvqp(params: CVQPParams) -> tuple[float | None, str, CVQPResults | Non
 def solve_cvxpy(prob: cp.Problem, solver: str) -> tuple[float | None, str]:
     """Solve using CVXPY with specified solver."""
     solver_map = {"MOSEK": cp.MOSEK, "CLARABEL": cp.CLARABEL}
-    
+
     try:
         solver_opts = SOLVER_CONFIGS.get(solver, {})
         prob.solve(
@@ -81,13 +80,13 @@ def solve_cvxpy(prob: cp.Problem, solver: str) -> tuple[float | None, str]:
             **solver_opts,
             canon_backend=cp.SCIPY_CANON_BACKEND,
         )
-        
+
         if prob.status == "optimal":
             return prob._solve_time, prob.status
         else:
             logging.debug(f"Solver {solver} status: {prob.status}")
             return np.nan, prob.status
-            
+
     except Exception as e:
         logging.debug(f"Solver {solver} error: {str(e)}")
         return np.nan, "error"
@@ -127,7 +126,7 @@ class CVQPBenchmark:
         self.base_seed = base_seed
         self.results = {p.name: [] for p in problems}
         self.failed_solvers = set()
-        
+
         # Progress tracking
         self.total_combinations = len(problems) * len(n_vars_list) * len(n_scenarios_list)
         self.current_combination = 0
@@ -138,12 +137,12 @@ class CVQPBenchmark:
         """Run all experiments and store results."""
         self._setup_results_dir()
         self._log_experiment_info()
-        
+
         for problem in self.problems:
             logging.info(f"Problem: {problem.name}")
             self._run_problem_experiments(problem)
             self._save_problem_results(problem.name)
-        
+
         self._log_final_summary()
 
     def _setup_results_dir(self):
@@ -169,26 +168,25 @@ class CVQPBenchmark:
         for n_vars in self.n_vars_list:
             for n_scenarios in self.n_scenarios_list:
                 self.current_combination += 1
-                
+
                 # Progress and combination info
-                logging.info(f"  [{self.current_combination}/{self.total_combinations}] "
-                           f"n_vars={n_vars:.0e}, n_scenarios={n_scenarios:.0e}")
-                
+                logging.info(f"  [{self.current_combination}/{self.total_combinations}] " f"n_vars={n_vars:.0e}, n_scenarios={n_scenarios:.0e}")
+
                 # Run all solvers for this problem size
                 size_results = {}
                 for solver in self.solvers:
                     if solver in self.failed_solvers:
                         logging.info(f"    {solver:<8s}: SKIPPED (previous failures)")
                         continue
-                    
+
                     result = self._benchmark_solver(problem, solver, n_vars, n_scenarios)
                     if result:
                         size_results[solver] = result
                         self.results[problem.name].append(result)
                         self.successful_benchmarks += 1
-                    
+
                     self.total_benchmarks += 1
-                
+
                 if size_results:
                     self._log_speedups(size_results)
 
@@ -197,21 +195,21 @@ class CVQPBenchmark:
         times = []
         statuses = []
         cvqp_results = [] if solver == "CVQP" else None
-        
+
         for i in range(self.n_instances):
             # Generate problem instance
             seed = get_instance_seed(problem.name, n_vars, n_scenarios, i, self.base_seed)
             params = problem.generate_instance(n_vars, n_scenarios, seed=seed)
-            
+
             # Solve instance
             result = solve_instance(params, solver)
-            
+
             if solver == "CVQP":
                 solve_time, status, cvqp_result = result
                 cvqp_results.append(cvqp_result)
             else:
                 solve_time, status = result
-            
+
             times.append(solve_time)
             statuses.append(status)
 
@@ -228,10 +226,7 @@ class CVQPBenchmark:
 
         # Log results
         if result.num_success > 0:
-            logging.info(
-                f"    {solver:<8s}: {result.avg_time:.2e}s ± {result.std_time:.2e}s "
-                f"({result.num_success}/{result.num_total} OK)"
-            )
+            logging.info(f"    {solver:<8s}: {result.avg_time:.2e}s ± {result.std_time:.2e}s " f"({result.num_success}/{result.num_total} OK)")
             return result
         else:
             logging.error(f"    {solver:<8s}: FAILED (all {result.num_total} attempts)")
@@ -242,18 +237,18 @@ class CVQPBenchmark:
         """Calculate and log speedups relative to CVQP."""
         if "CVQP" not in size_results:
             return
-        
+
         cvqp_time = size_results["CVQP"].avg_time
         speedups = []
-        
+
         for solver, result in size_results.items():
             if solver != "CVQP" and result.avg_time > 0:
                 speedup = result.avg_time / cvqp_time
                 speedups.append(f"{solver}: {speedup:.1f}x")
-        
+
         if speedups:
             logging.info(f"    {'Speedup':<8s}: {', '.join(speedups)}")
-    
+
     def _log_final_summary(self):
         """Log final benchmark summary."""
         logging.info("-" * 60)
@@ -263,12 +258,12 @@ class CVQPBenchmark:
         logging.info(f"Successful: {self.successful_benchmarks}")
         logging.info(f"Failed: {self.total_benchmarks - self.successful_benchmarks}")
         logging.info(f"Success rate: {self.successful_benchmarks/self.total_benchmarks*100:.1f}%")
-        
+
         if self.failed_solvers:
             logging.info(f"Failed solvers: {sorted(self.failed_solvers)}")
         else:
             logging.info("All solvers completed successfully!")
-        
+
         logging.info("=" * 60)
 
     def _save_problem_results(self, problem_name: str):
@@ -280,7 +275,7 @@ class CVQPBenchmark:
             "n_scenarios_list": self.n_scenarios_list,
             "results": self.results[problem_name],
         }
-        
+
         results_dir = Path(__file__).parent / "results"
         filename = results_dir / f"{problem_name.lower()}.pkl"
         with open(filename, "wb") as f:

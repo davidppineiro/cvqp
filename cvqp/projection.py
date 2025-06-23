@@ -1,56 +1,94 @@
 """
-Efficient projection onto sum-of-largest-elements constraint sets.
+Projection onto sum-of-k-largest and CVaR constraints.
 """
 
 import numpy as np
 from .libs import proj_sum_largest_cpp
 
 
-def proj_sum_largest(z: np.ndarray, k: int, alpha: float) -> np.ndarray:
-    """
-    Project vector onto {x | sum(k largest elements) ≤ α}.
-    
-    Efficiently computes the Euclidean projection of a vector z onto the set
-    where the sum of its k largest elements does not exceed alpha.
-    
+def proj_sum_largest(x: np.ndarray, k: int, alpha: float) -> np.ndarray:
+    """Compute the Euclidean projection onto the sum-of-k-largest constraint.
+
+    Given a vector x, finds the closest point (in Euclidean distance) that
+    satisfies the constraint that the sum of its k largest elements is at most alpha.
+
     Args:
-        z: Input vector to project
-        k: Number of largest elements (must be 0 < k < len(z))
-        alpha: Upper bound on sum (must be alpha ≥ 0)
-        
+        x: Input vector to project.
+        k: Number of largest elements to constrain (1 <= k <= len(x)).
+        alpha: Upper bound on sum of k largest elements.
+
     Returns:
-        Projected vector with same shape as input
-        
-    Note:
-        Uses fast C++ implementation
+        Projected vector with same shape as x, satisfying the sum-of-k-largest constraint.
+
+    Raises:
+        TypeError: If x is not a numpy array.
+        ValueError: If x is not 1D, k is out of bounds, or alpha is negative.
     """
     # Input validation
-    if not isinstance(z, np.ndarray):
-        raise TypeError(f"Input z must be a numpy array, got {type(z)}")
-    
-    if z.ndim != 1:
-        raise ValueError(f"Input z must be a 1D array, got shape {z.shape}")
-        
-    if not 0 < k < len(z):
-        raise ValueError(f"k must be between 0 and len(z), got {k}")
-        
+    if not isinstance(x, np.ndarray):
+        raise TypeError(f"Input x must be a numpy array, got {type(x)}")
+
+    if x.ndim != 1:
+        raise ValueError(f"Input x must be a 1D array, got shape {x.shape}")
+
+    if not 0 < k <= len(x):
+        raise ValueError(f"k must be between 0 and len(x), got {k}")
+
     if alpha < 0:
         raise ValueError(f"alpha must be non-negative, got {alpha}")
-    
-    # Simple case: if sum of all elements is less than alpha, return z unchanged
-    if np.sum(z) <= alpha:
-        return z.copy()
-        
-    # Sort indices in descending order
-    sorted_inds = np.argsort(z)[::-1]
-    z_sorted = z[sorted_inds]
 
-    # Call C++ implementation (discarding extra return values)
-    z_projected, *_ = proj_sum_largest_cpp(
-        z_sorted, k, alpha, k, 0, len(z), False
-    )
+    # Sort indices in descending order
+    sorted_inds = np.argsort(x)[::-1]
+    x_sorted = x[sorted_inds]
+
+    # Early return if constraint is already satisfied
+    if np.sum(x_sorted[:k]) <= alpha:
+        return x.copy()
+
+    # Call C++ implementation
+    x_projected, *_ = proj_sum_largest_cpp(x_sorted, k, alpha, k, 0, len(x), False)
 
     # Restore original ordering
-    x = np.empty_like(z)
-    x[sorted_inds] = z_projected
-    return x
+    result = np.empty_like(x)
+    result[sorted_inds] = x_projected
+    return result
+
+
+def proj_cvar(x: np.ndarray, beta: float, kappa: float) -> np.ndarray:
+    """Compute the Euclidean projection onto the CVaR constraint.
+
+    Given a vector x, finds the closest point (in Euclidean distance) that
+    satisfies the constraint CVaR_beta(x) <= kappa, where CVaR_beta is the
+    Conditional Value at Risk at confidence level beta.
+
+    Args:
+        x: Input vector to project.
+        beta: Confidence level for CVaR (0 < beta < 1).
+        kappa: Upper bound on CVaR value.
+
+    Returns:
+        Projected vector with same shape as x, satisfying CVaR_beta(result) <= kappa.
+
+    Raises:
+        TypeError: If x is not a numpy array.
+        ValueError: If x is not 1D, beta is out of bounds, or kappa is negative.
+    """
+    # Input validation
+    if not isinstance(x, np.ndarray):
+        raise TypeError(f"Input x must be a numpy array, got {type(x)}")
+
+    if x.ndim != 1:
+        raise ValueError(f"Input x must be a 1D array, got shape {x.shape}")
+
+    if not 0 < beta < 1:
+        raise ValueError(f"beta must be between 0 and 1 (exclusive), got {beta}")
+
+    if kappa < 0:
+        raise ValueError(f"kappa must be non-negative, got {kappa}")
+
+    # Convert CVaR parameters to sum-of-k-largest parameters
+    n_scenarios = x.shape[0]
+    k = int((1 - beta) * n_scenarios)
+    alpha = kappa * k
+
+    return proj_sum_largest(x, k, alpha)

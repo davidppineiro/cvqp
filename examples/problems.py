@@ -14,9 +14,7 @@ class CVQPProblem(ABC):
     """Abstract base class to generate CVQP problem instances."""
 
     @abstractmethod
-    def generate_instance(
-        self, n_vars: int, n_scenarios: int, seed: int | None = None
-    ) -> tuple[CVQPParams, cp.Problem]:
+    def generate_instance(self, n_vars: int, n_scenarios: int, seed: int | None = None) -> tuple[CVQPParams, cp.Problem]:
         """Generate a problem instance with both CVQP and CVXPY representations."""
         pass
 
@@ -29,7 +27,7 @@ class CVQPProblem(ABC):
 
 class PortfolioOptimization(CVQPProblem):
     """Portfolio optimization problem with CVaR constraint."""
-    
+
     # Constants
     NORMAL_VOLATILITY = 1.0
     LARGE_SCENARIO_THRESHOLD = 1e6
@@ -50,16 +48,14 @@ class PortfolioOptimization(CVQPProblem):
         self.beta = beta
         self.kappa = kappa
 
-    def generate_instance(
-        self, n_vars: int, n_scenarios: int, seed: int | None = None
-    ) -> tuple[CVQPParams, cp.Problem]:
+    def generate_instance(self, n_vars: int, n_scenarios: int, seed: int | None = None) -> tuple[CVQPParams, cp.Problem]:
         """Generate portfolio optimization instance."""
         rng = np.random.default_rng(seed)
 
         # Generate return scenarios (mixture of normal and stress conditions)
         n_normal = int(self.alpha * n_scenarios)
         n_stress = n_scenarios - n_normal
-        
+
         R = np.empty((n_scenarios, n_vars))
         R[:n_normal] = rng.normal(self.nu, self.NORMAL_VOLATILITY, size=(n_normal, n_vars))
         R[n_normal:] = rng.normal(-self.nu, self.sigma, size=(n_stress, n_vars))
@@ -82,12 +78,12 @@ class PortfolioOptimization(CVQPProblem):
         x = cp.Variable(n_vars)
         objective = (self.gamma / 2) * cp.quad_form(x, Sigma, assume_PSD=True) - mu @ x
         constraints = [cp.sum(x) == 1, x >= 0]
-        
+
         # Add CVaR constraint
         k = int((1 - self.beta) * n_scenarios)
         alpha = self.kappa * k
         constraints.append(cp.sum_largest(A @ x, k) <= alpha)
-        
+
         problem = cp.Problem(cp.Minimize(objective), constraints)
         return params, problem
 
@@ -112,7 +108,7 @@ class PortfolioOptimization(CVQPProblem):
 
 class QuantileRegression(CVQPProblem):
     """Quantile regression problem."""
-    
+
     # Constants
     NOISE_SCALE = 0.1
     NOISE_DOF = 5  # Degrees of freedom for t-distributed noise
@@ -120,9 +116,7 @@ class QuantileRegression(CVQPProblem):
     def __init__(self, tau: float = 0.9):
         self.tau = tau
 
-    def generate_instance(
-        self, n_vars: int, n_scenarios: int, seed: int | None = None
-    ) -> tuple[CVQPParams, cp.Problem]:
+    def generate_instance(self, n_vars: int, n_scenarios: int, seed: int | None = None) -> tuple[CVQPParams, cp.Problem]:
         """Generate quantile regression instance."""
         rng = np.random.default_rng(seed)
 

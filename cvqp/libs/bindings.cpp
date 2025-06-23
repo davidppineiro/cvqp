@@ -8,7 +8,7 @@
 
 namespace py = pybind11;
 
-py::tuple sum_largest_proj_py(py::array_t<double> z, int k, double alpha, int untied, int tied, int cutoff, bool debug) {
+py::tuple proj_sum_largest_cpp(py::array_t<double> z, int k, double alpha, int untied, int tied, int cutoff, bool debug) {
     // Extract the NumPy array data into a C++ vector
     py::buffer_info buf_info = z.request();
     
@@ -21,7 +21,7 @@ py::tuple sum_largest_proj_py(py::array_t<double> z, int k, double alpha, int un
 
 }
 
-PYBIND11_MODULE(mybindings, m) {
+PYBIND11_MODULE(proj_sum_largest_cpp, m) {
     m.doc() = "Python bindings for sum_largest_proj";
-    m.def("sum_largest_proj", &sum_largest_proj_py, "Compute sum_largest_proj function");
+    m.def("proj_sum_largest_cpp", &proj_sum_largest_cpp, "Compute sum_largest_proj function");
 }

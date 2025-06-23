@@ -65,15 +65,14 @@ params = CVQPParams(
 
 # Create solver with custom configuration
 config = CVQPConfig(
-    verbose=True,              # Print detailed progress
     max_iter=1000,             # Maximum iterations
     abstol=1e-4,               # Absolute tolerance
     reltol=1e-3,               # Relative tolerance
 )
 
 # Initialize and solve
-cvqp = CVQP(params, config)
-results = cvqp.solve()
+cvqp = CVQP(params)
+results = cvqp.solve(verbose=True, options=config)  # Pass verbose to solve()
 
 # Access solution
 print(f"Optimal value: {results.objval[-1]:.6f}")

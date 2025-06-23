@@ -7,9 +7,46 @@ import numpy as np
 import scipy as sp
 
 
+def _validate_positive(value: float, name: str):
+    """Check that a value is positive."""
+    if value <= 0:
+        raise ValueError(f"{name} must be positive")
+
+
+def _validate_range(value: float, name: str, min_val: float, max_val: float, exclusive: bool = False):
+    """Check that a value is within the specified range."""
+    if exclusive:
+        if not (min_val < value < max_val):
+            raise ValueError(f"{name} must be between {min_val} and {max_val} (exclusive)")
+    else:
+        if not (min_val <= value <= max_val):
+            raise ValueError(f"{name} must be between {min_val} and {max_val}")
+
+
+def _validate_dimensions(params):
+    """Check dimensional compatibility of problem matrices."""
+    n = params.q.shape[0]
+
+    if params.P is not None:
+        if params.P.shape[0] != params.P.shape[1]:
+            raise ValueError("Cost matrix P must be square")
+        if params.P.shape[1] != n:
+            raise ValueError(f"Incompatible dimensions: P({params.P.shape}) and q({params.q.shape})")
+
+    if params.A.shape[1] != n:
+        raise ValueError(f"Incompatible dimensions: A({params.A.shape}) and q({params.q.shape})")
+
+    if params.B.shape[1] != n:
+        raise ValueError(f"Incompatible dimensions: B({params.B.shape}) and q({params.q.shape})")
+
+    if params.l.shape[0] != params.B.shape[0] or params.u.shape[0] != params.B.shape[0]:
+        raise ValueError(f"Incompatible dimensions: l({params.l.shape}), u({params.u.shape}), and B({params.B.shape})")
+
+
 @dataclass
 class CVQPParams:
     """Parameters defining a CVQP problem instance."""
+
     P: np.ndarray | sp.sparse.spmatrix | None  # Quadratic cost matrix (or None for linear)
     q: np.ndarray  # Linear cost vector
     A: np.ndarray  # CVaR constraint matrix
@@ -18,32 +55,16 @@ class CVQPParams:
     u: np.ndarray  # Upper bounds for Bx
     beta: float  # Probability level for CVaR (0 < beta < 1)
     kappa: float  # CVaR threshold
-    
+
     def __post_init__(self):
-        """Validate problem parameters."""
-        if self.beta <= 0 or self.beta >= 1:
-            raise ValueError("beta must be between 0 and 1")
-        
-        # Check dimension compatibility
-        if self.P is not None:
-            if self.P.shape[0] != self.P.shape[1]:
-                raise ValueError("Cost matrix P must be square")
-            if self.P.shape[1] != self.q.shape[0]:
-                raise ValueError(f"Incompatible dimensions: P({self.P.shape}) and q({self.q.shape})")
-        
-        if self.A.shape[1] != self.q.shape[0]:
-            raise ValueError(f"Incompatible dimensions: A({self.A.shape}) and q({self.q.shape})")
-        
-        if self.B.shape[1] != self.q.shape[0]:
-            raise ValueError(f"Incompatible dimensions: B({self.B.shape}) and q({self.q.shape})")
-        
-        if self.l.shape[0] != self.B.shape[0] or self.u.shape[0] != self.B.shape[0]:
-            raise ValueError(f"Incompatible dimensions: l({self.l.shape}), u({self.u.shape}), and B({self.B.shape})")
+        _validate_range(self.beta, "beta", 0, 1, exclusive=True)
+        _validate_dimensions(self)
 
 
 @dataclass
 class CVQPConfig:
     """Configuration parameters for the CVQP solver."""
+
     max_iter: int = int(1e5)  # Maximum iterations
     rho: float = 1e-2  # Initial penalty parameter
     abstol: float = 1e-4  # Absolute tolerance
@@ -53,29 +74,22 @@ class CVQPConfig:
     mu: float = 10  # Threshold for adaptive rho
     rho_incr: float = 2.0  # Factor for increasing rho
     rho_decr: float = 2.0  # Factor for decreasing rho
-    verbose: bool = False  # Print detailed information
     time_limit: float = 7200  # Max runtime in seconds
     dynamic_rho: bool = True  # Adaptive penalty updates
-    
+
     def __post_init__(self):
-        """Validate solver configuration."""
-        if self.max_iter <= 0:
-            raise ValueError("max_iter must be positive")
-        if self.rho <= 0:
-            raise ValueError("rho must be positive")
-        if self.abstol <= 0:
-            raise ValueError("abstol must be positive")
-        if self.reltol <= 0:
-            raise ValueError("reltol must be positive")
-        if self.alpha_over < 1 or self.alpha_over > 2:
-            raise ValueError("alpha_over should be in range [1, 2]")
-        if self.time_limit <= 0:
-            raise ValueError("time_limit must be positive")
+        _validate_positive(self.max_iter, "max_iter")
+        _validate_positive(self.rho, "rho")
+        _validate_positive(self.abstol, "abstol")
+        _validate_positive(self.reltol, "reltol")
+        _validate_positive(self.time_limit, "time_limit")
+        _validate_range(self.alpha_over, "alpha_over", 1, 2)
 
 
 @dataclass
 class CVQPResults:
     """Results from the CVQP solver."""
+
     x: np.ndarray  # Optimal solution
     iter_count: int  # Iterations performed
     solve_time: float  # Total solve time (seconds)
@@ -86,13 +100,21 @@ class CVQPResults:
     eps_dual: list[float]  # Dual feasibility tolerances
     rho: list[float]  # Penalty parameter values
     problem_status: str = "unknown"  # Final status
-    
+
     @property
     def is_optimal(self) -> bool:
-        """Check if the solution is optimal."""
+        """Check if the solver converged to an optimal solution.
+
+        Returns:
+            True if the solver status is 'optimal', False otherwise.
+        """
         return self.problem_status == "optimal"
-    
+
     @property
-    def final_objective(self) -> float:
-        """Get the final objective value."""
-        return self.objval[-1] if self.objval else float('nan')
+    def value(self) -> float:
+        """Get the optimal objective value.
+
+        Returns:
+            The objective value from the last iteration, or NaN if no iterations completed.
+        """
+        return self.objval[-1] if self.objval else float("nan")
