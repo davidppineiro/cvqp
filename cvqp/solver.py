@@ -157,7 +157,12 @@ class CVQP:
     def _update_M_factor(self, rho: float):
         """Update and factorize the linear system matrix."""
         self.M = self._compute_system_matrix(rho)
-        self.factor = sp.linalg.lu_factor(self.M)
+        try:
+            self.factor = sp.linalg.cho_factor(self.M)
+            self.use_cholesky = True
+        except np.linalg.LinAlgError:
+            self.factor = sp.linalg.lu_factor(self.M)
+            self.use_cholesky = False
 
     def _initialize_variables(self, warm_start: np.ndarray | None) -> tuple:
         """Set up initial optimization variables and results storage."""
@@ -189,7 +194,10 @@ class CVQP:
     ) -> np.ndarray:
         """Perform x-minimization step of ADMM."""
         rhs = -self.params.q + rho * (self.params.A.T @ (z - u)) + rho * (self.params.B.T @ (z_tilde - u_tilde))
-        return sp.linalg.lu_solve(self.factor, rhs)
+        if self.use_cholesky:
+            return sp.linalg.cho_solve(self.factor, rhs)
+        else:
+            return sp.linalg.lu_solve(self.factor, rhs)
 
     def _z_update(self, x: np.ndarray, z: np.ndarray, u: np.ndarray, alpha_over: float) -> np.ndarray:
         """Update z variable with projection onto sum-k-largest constraint."""
