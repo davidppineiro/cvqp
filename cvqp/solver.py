@@ -29,7 +29,7 @@ class CVQP:
     def __init__(self, params: CVQPParams):
         self.params = params
 
-    def solve(self, warm_start: np.ndarray | None = None, verbose: bool = False, options: CVQPConfig = CVQPConfig()) -> CVQPResults:
+    def solve(self, warm_start: np.ndarray | None = None, verbose: bool = False, options: CVQPConfig | None = None) -> CVQPResults:
         """Solve the CVaR-constrained quadratic program using ADMM.
 
         Args:
@@ -44,7 +44,7 @@ class CVQP:
             ValueError: If problem parameters are incompatible or invalid.
         """
         # Set up solver configuration
-        self.options = options
+        self.options = options or CVQPConfig()
         self.verbose = verbose
 
         # Initialize problem (scaling, precomputation)
