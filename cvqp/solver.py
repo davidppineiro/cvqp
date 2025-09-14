@@ -351,3 +351,69 @@ class CVQP:
         self.params.q = self._scale_matrix(self.params.q, 1 / self.scale)
         if self.params.P is not None:
             self.params.P = self._scale_matrix(self.params.P, 1 / self.scale, inplace=False)
+
+
+def solve_cvqp(
+    P: np.ndarray | sp.sparse.spmatrix | None = None,
+    q: np.ndarray = None,
+    A: np.ndarray = None,
+    B: np.ndarray | sp.sparse.spmatrix = None,
+    l: np.ndarray = None,
+    u: np.ndarray = None,
+    beta: float = None,
+    kappa: float = None,
+    warm_start: np.ndarray | None = None,
+    verbose: bool = False,
+    **solver_options,
+) -> CVQPResults:
+    """Solve a CVaR-constrained quadratic program using a functional interface.
+
+    This is a convenient functional wrapper around the CVQP class that allows
+    solving problems without explicitly creating parameter and configuration objects.
+
+    Args:
+        P: Quadratic cost matrix (n x n), or None for linear problems.
+        q: Linear cost vector (n,).
+        A: CVaR constraint matrix (m x n).
+        B: Linear constraint matrix for box constraints.
+        l: Lower bounds for Bx.
+        u: Upper bounds for Bx.
+        beta: Probability level for CVaR (0 < beta < 1).
+        kappa: CVaR threshold.
+        warm_start: Initial solution guess.
+        verbose: Whether to print solver progress.
+        **solver_options: Additional solver configuration options (max_iter, abstol, reltol, etc.).
+
+    Returns:
+        CVQPResults containing the optimal solution and solver statistics.
+
+    Example:
+        >>> import numpy as np
+        >>> from cvqp import solve_cvqp
+        >>>
+        >>> # Problem data
+        >>> n, m = 10, 100
+        >>> P = np.eye(n) * 0.1
+        >>> q = np.ones(n) * -0.1
+        >>> A = np.random.randn(m, n) * 0.2 + 0.1
+        >>> B = np.eye(n)
+        >>> l = -np.ones(n)
+        >>> u = np.ones(n)
+        >>>
+        >>> results = solve_cvqp(P=P, q=q, A=A, B=B, l=l, u=u,
+        ...                      beta=0.9, kappa=0.1, verbose=True)
+        >>> print(f"Optimal value: {results.value:.6f}")
+    """
+    # Validate required parameters
+    required_params = [q, A, B, l, u, beta, kappa]
+    if any(param is None for param in required_params):
+        missing = [name for name, param in zip(["q", "A", "B", "l", "u", "beta", "kappa"], required_params) if param is None]
+        raise ValueError(f"Missing required parameters: {missing}")
+
+    # Create parameter and configuration objects
+    params = CVQPParams(P=P, q=q, A=A, B=B, l=l, u=u, beta=beta, kappa=kappa)
+    config = CVQPConfig(**solver_options)
+
+    # Solve using the OOP API
+    solver = CVQP(params)
+    return solver.solve(warm_start=warm_start, verbose=verbose, options=config)

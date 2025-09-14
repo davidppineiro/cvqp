@@ -40,7 +40,7 @@ where $\phi_\beta$ is the Conditional Value-at-Risk (CVaR) at level $\beta$.
 
 ```python
 import numpy as np
-from cvqp import CVQP, CVQPParams
+from cvqp import solve_cvqp
 
 # Problem data
 np.random.seed(42)
@@ -54,9 +54,8 @@ u = np.ones(n)                         # Upper bounds
 beta = 0.9                             # CVaR confidence level
 kappa = 0.1                            # CVaR limit
 
-params = CVQPParams(P=P, q=q, A=A, B=B, l=l, u=u, beta=beta, kappa=kappa)
-cvqp = CVQP(params)
-results = cvqp.solve(verbose=True)
+results = solve_cvqp(P=P, q=q, A=A, B=B, l=l, u=u,
+                     beta=beta, kappa=kappa, verbose=True)
 
 print(f"Optimal value: {results.value:.6f}")
 print(f"Solution: {results.x}")
