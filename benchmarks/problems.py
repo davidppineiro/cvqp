@@ -90,6 +90,7 @@ class PortfolioOptimization(CVQPProblem):
     def _compute_covariance(self, R: np.ndarray, n_scenarios: int) -> np.ndarray:
         """Compute covariance matrix, using diagonal approximation for large problems."""
         if n_scenarios >= self.LARGE_SCENARIO_THRESHOLD:
+            # Memory optimization: ignore correlations for very large problems
             return np.diag(np.var(R, axis=0))
         else:
             return np.cov(R.T)
@@ -97,6 +98,7 @@ class PortfolioOptimization(CVQPProblem):
     def _create_covariance_matrix(self, Sigma: np.ndarray, n_scenarios: int):
         """Create covariance matrix for optimization (sparse for large problems)."""
         if n_scenarios >= self.LARGE_SCENARIO_THRESHOLD:
+            # Use sparse diagonal matrix to reduce memory usage
             return self.gamma * sp.diags(np.diag(Sigma))
         else:
             return self.gamma * Sigma

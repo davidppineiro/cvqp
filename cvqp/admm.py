@@ -52,34 +52,28 @@ class CVQP:
         Raises:
             ValueError: If problem parameters are incompatible or invalid.
         """
-        # Set up solver configuration
         self.options = options or CVQPConfig()
         self.verbose = verbose
 
-        # Initialize problem (scaling, precomputation)
         self._initialize_problem()
 
         start_time = time.time()
 
-        # Initialize variables and results
         z, u, z_tilde, u_tilde, results = self._initialize_variables(warm_start)
         rho = self.options.rho
 
         if self.verbose:
             _setup_cvqp_logging()
             self._log_header()
-
-        # Main iteration loop
         for i in range(self.options.max_iter):
-            # Store previous values
             z_old, z_tilde_old = z.copy(), z_tilde.copy()
 
-            # Update primal and dual variables
+            # ADMM primal updates
             x = self._x_update(z, u, z_tilde, u_tilde, rho)
             z = self._z_update(x, z, u, self.options.alpha_over)
             z_tilde = self._z_tilde_update(x, z_tilde, u_tilde, self.options.alpha_over)
 
-            # Update dual variables
+            # ADMM dual updates
             u += self.options.alpha_over * (self.params.A @ x) + (1 - self.options.alpha_over) * z_old - z
             Bx = self._ensure_dense(self.params.B @ x)
             u_tilde += self.options.alpha_over * Bx + (1 - self.options.alpha_over) * z_tilde_old - z_tilde
@@ -92,12 +86,11 @@ class CVQP:
                 results.problem_status = status
                 break
 
-            # Update penalty parameter if needed
+            # Adaptive penalty parameter update
             if self.options.dynamic_rho and i % self.options.print_freq == 0:
                 r_norm, s_norm, _, _ = self._compute_residuals(x, z, z_tilde, z_old, z_tilde_old, rho)
                 rho, u, u_tilde = self._update_rho(rho, r_norm, s_norm, u, u_tilde)
 
-        # Finalize results
         self._unscale_problem()
         results.x = x
         results.iter_count = i + 1
@@ -125,7 +118,9 @@ class CVQP:
     def _setup_cvar_params(self):
         """Initialize CVaR parameters from problem dimensions."""
         self.m = self.params.A.shape[0]
+        # Number of scenarios in the (1-beta) tail for CVaR
         self.k = int((1 - self.params.beta) * self.m)
+        # Scale-adjusted constraint threshold
         self.alpha = self.params.kappa * self.k / self.scale
 
     def _precompute_matrices(self):
@@ -159,7 +154,7 @@ class CVQP:
         else:
             M = self.params.P + penalty_term
 
-        # Convert to dense only if both components are dense
+        # Preserve sparsity unless all input matrices are dense
         if not sp.sparse.issparse(M):
             return M
         elif not sp.sparse.issparse(self.AtA) and not sp.sparse.issparse(self.BtB) and (self.params.P is None or not sp.sparse.issparse(self.params.P)):
@@ -172,22 +167,21 @@ class CVQP:
         self.M = self._compute_system_matrix(rho)
 
         if sp.sparse.issparse(self.M):
-            # Use sparse factorization
             try:
                 from scikits.sparse.cholmod import cholesky
 
+                # CHOLMOD is fastest for sparse SPD systems
                 self.factor = cholesky(self.M)
                 self.use_cholesky = True
                 self.use_sparse = True
             except ImportError:
-                # Fallback to scipy sparse LU
                 self.factor = sp.sparse.linalg.splu(self.M)
                 self.use_cholesky = False
                 self.use_sparse = True
         else:
-            # Dense factorization
             self.use_sparse = False
             try:
+                # Cholesky is 2x faster than LU for SPD systems
                 self.factor = sp.linalg.cho_factor(self.M)
                 self.use_cholesky = True
             except np.linalg.LinAlgError:
@@ -205,6 +199,7 @@ class CVQP:
             z_tilde = np.zeros(B_rows)
         else:
             x = warm_start.copy()
+            # Initialize auxiliary variables to be feasible
             z = self.params.A @ x
             z_tilde = self._ensure_dense(self.params.B @ x)
 
@@ -227,9 +222,9 @@ class CVQP:
 
         if self.use_sparse:
             if self.use_cholesky:
-                return self.factor.solve_A(rhs)  # CHOLMOD solve
+                return self.factor.solve_A(rhs)
             else:
-                return self.factor.solve(rhs)  # Sparse LU solve
+                return self.factor.solve(rhs)
         else:
             if self.use_cholesky:
                 return sp.linalg.cho_solve(self.factor, rhs)
@@ -238,6 +233,7 @@ class CVQP:
 
     def _z_update(self, x: np.ndarray, z: np.ndarray, u: np.ndarray, alpha_over: float) -> np.ndarray:
         """Update z variable with projection onto sum-k-largest constraint."""
+        # Over-relaxation step for faster convergence
         z_hat = alpha_over * (self.params.A @ x) + (1 - alpha_over) * z + u
         return proj_sum_largest(z_hat, self.k, self.alpha)
 
@@ -245,6 +241,7 @@ class CVQP:
         """Update z_tilde variable with box projection."""
         Bx = self._ensure_dense(self.params.B @ x)
         z_hat_tilde = alpha_over * Bx + (1 - alpha_over) * z_tilde + u_tilde
+        # Project onto box constraints [l, u]
         return np.clip(z_hat_tilde, self.params.l, self.params.u)
 
     def _compute_residuals(
@@ -264,11 +261,9 @@ class CVQP:
         r = np.concatenate([Ax - z, Bx - z_tilde])
         r_norm = np.linalg.norm(r)
 
-        # Changes in the variables for dual residual
+        # Dual residual from variable changes
         z_diff = z - z_old
         z_tilde_diff = z_tilde - z_tilde_old
-
-        # Compute dual residual components
         Bt_z = self.params.B.T @ z_tilde_diff
         At_z = self.params.A.T @ z_diff + self._ensure_dense(Bt_z)
         s_norm = np.linalg.norm(rho * At_z)
@@ -281,7 +276,7 @@ class CVQP:
         Returns:
             (should_terminate, status): Tuple indicating if solver should stop and final status.
         """
-        # Only check convergence at specified intervals
+        # Skip expensive convergence checks between print intervals
         if i % self.options.print_freq != 0:
             return False, None
 
@@ -308,33 +303,24 @@ class CVQP:
         """Compute primal and dual feasibility tolerances."""
         sqrt_d0 = (self.m + self.params.B.shape[0]) ** 0.5
         sqrt_d1 = self.params.A.shape[1] ** 0.5
-
         eps_pri = sqrt_d0 * self.options.abstol + self.options.reltol * max(np.linalg.norm(Ax), np.linalg.norm(np.concatenate([z, z_tilde])))
         eps_dual = sqrt_d1 * self.options.abstol + self.options.reltol * np.linalg.norm(rho * self._ensure_dense(At_z))
-
         return eps_pri, eps_dual
 
     def _check_convergence(self, r_norm: float, s_norm: float, eps_pri: float, eps_dual: float) -> bool:
         """Check if convergence criteria are satisfied."""
         return r_norm <= eps_pri and s_norm <= eps_dual
 
-    def _update_rho(
-        self,
-        rho: float,
-        r_norm: float,
-        s_norm: float,
-        u: np.ndarray,
-        u_tilde: np.ndarray,
-    ) -> tuple:
+    def _update_rho(self, rho: float, r_norm: float, s_norm: float, u: np.ndarray, u_tilde: np.ndarray) -> tuple:
         """Update penalty parameter adaptively based on residuals."""
         if r_norm > self.options.mu * s_norm:
-            # Primal residual too large - increase rho
+            # Primal infeasibility dominates - increase penalty
             rho *= self.options.rho_incr
             u /= self.options.rho_incr
             u_tilde /= self.options.rho_incr
             self._update_M_factor(rho)
         elif s_norm > self.options.mu * r_norm:
-            # Dual residual too large - decrease rho
+            # Dual infeasibility dominates - decrease penalty
             rho /= self.options.rho_decr
             u *= self.options.rho_decr
             u_tilde *= self.options.rho_decr
@@ -408,10 +394,7 @@ def solve_cvqp(
     verbose: bool = False,
     **solver_options,
 ) -> CVQPResults:
-    """Solve a CVaR-constrained quadratic program using a functional interface.
-
-    This is a convenient functional wrapper around the CVQP class that allows
-    solving problems without explicitly creating parameter and configuration objects.
+    """Solve CVaR-constrained QP (functional API).
 
     Args:
         P: Quadratic cost matrix (n x n), or None for linear problems.
@@ -428,23 +411,6 @@ def solve_cvqp(
 
     Returns:
         CVQPResults containing the optimal solution and solver statistics.
-
-    Example:
-        >>> import numpy as np
-        >>> from cvqp import solve_cvqp
-        >>>
-        >>> # Problem data
-        >>> n, m = 10, 100
-        >>> P = np.eye(n) * 0.1
-        >>> q = np.ones(n) * -0.1
-        >>> A = np.random.randn(m, n) * 0.2 + 0.1
-        >>> B = np.eye(n)
-        >>> l = -np.ones(n)
-        >>> u = np.ones(n)
-        >>>
-        >>> results = solve_cvqp(P=P, q=q, A=A, B=B, l=l, u=u,
-        ...                      beta=0.9, kappa=0.1, verbose=True)
-        >>> print(f"Optimal value: {results.value:.6f}")
     """
     # Validate required parameters
     required_params = [q, A, B, l, u, beta, kappa]

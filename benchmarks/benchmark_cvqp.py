@@ -63,7 +63,6 @@ def solve_cvqp(params: CVQPParams) -> tuple[float | None, str, CVQPResults | Non
         results = solver.solve()
         return results.solve_time, results.problem_status, results
     except Exception as e:
-        # Use debug level to reduce clutter
         logging.debug(f"CVQP solver error: {str(e)}")
         return np.nan, "error", None
 
@@ -127,7 +126,6 @@ class CVQPBenchmark:
         self.results = {p.name: [] for p in problems}
         self.failed_solvers = set()
 
-        # Progress tracking
         self.total_combinations = len(problems) * len(n_vars_list) * len(n_scenarios_list)
         self.current_combination = 0
         self.total_benchmarks = 0
@@ -169,10 +167,7 @@ class CVQPBenchmark:
             for n_scenarios in self.n_scenarios_list:
                 self.current_combination += 1
 
-                # Progress and combination info
                 logging.info(f"  [{self.current_combination}/{self.total_combinations}] " f"n_vars={n_vars:.0e}, n_scenarios={n_scenarios:.0e}")
-
-                # Run all solvers for this problem size
                 size_results = {}
                 for solver in self.solvers:
                     if solver in self.failed_solvers:

@@ -61,14 +61,14 @@ def solve_with_cvxpy(params):
     d = params.q.shape[0]
     x = cp.Variable(d)
 
-    # Objective
+    # Build objective: linear or quadratic
     if params.P is None:
         objective = cp.Minimize(params.q @ x)
     else:
         P_dense = params.P.toarray() if sp.sparse.issparse(params.P) else params.P
         objective = cp.Minimize(0.5 * cp.quad_form(x, P_dense) + params.q @ x)
 
-    # Constraints
+    # Build constraints: CVaR + box constraints
     B_dense = params.B.toarray() if sp.sparse.issparse(params.B) else params.B
     constraints = [cp.cvar(params.A @ x, params.beta) <= params.kappa, params.l <= B_dense @ x, B_dense @ x <= params.u]
 
@@ -78,7 +78,7 @@ def solve_with_cvxpy(params):
     if prob.status != cp.OPTIMAL:
         return None, None
 
-    # Calculate objective
+    # Compute objective value to match CVQP's calculation
     if params.P is None:
         obj_val = params.q @ x.value
     else:
@@ -98,11 +98,11 @@ class TestProjections:
 
         result = proj_sum_largest(x, k, alpha)
 
-        # Check feasibility
+        # Verify constraint satisfaction
         sum_k_largest = sum(sorted(result, reverse=True)[:k])
         assert sum_k_largest <= alpha + FEASIBILITY_TOL
 
-        # Compare with CVXPY
+        # Cross-check against CVXPY reference solution
         y = cp.Variable(x.shape)
         prob = cp.Problem(cp.Minimize(cp.sum_squares(y - x)), [cp.sum_largest(y, k) <= alpha])
         prob.solve(solver=cp.CLARABEL, verbose=False)
@@ -142,7 +142,6 @@ class TestProjections:
 
         result = proj_cvar(x, beta, kappa)
 
-        # Check feasibility by computing CVaR manually
         sorted_x = np.sort(result)
         k = int((1 - beta) * len(x))
         cvar = np.mean(sorted_x[-k:]) if k > 0 else 0
@@ -153,10 +152,9 @@ class TestProjections:
         x = np.array([6.0, 2.0, 5.0, 4.0, 1.0])
         beta, kappa = 0.6, 3.0
 
-        # Compute using proj_cvar
         result_cvar = proj_cvar(x, beta, kappa)
 
-        # Compute using proj_sum_largest with equivalent parameters
+        # CVaR projection should be equivalent to sum-of-k-largest
         k = int((1 - beta) * len(x))
         alpha = kappa * k
         result_sum = proj_sum_largest(x, k, alpha)
@@ -199,11 +197,10 @@ class TestCVQPSolver:
         cvqp = CVQP(params)
         results = cvqp.solve()
 
-        # Check solution quality
         assert results.problem_status == "optimal"
         assert_feasible(results, params)
 
-        # Compare with CVXPY
+        # Verify objective value matches CVXPY reference
         cvxpy_sol, cvxpy_obj = solve_with_cvxpy(params)
         if cvxpy_sol is not None and cvxpy_obj is not None:
             rel_obj_gap = abs(cvxpy_obj - results.objval[-1]) / abs(cvxpy_obj)
@@ -216,14 +213,14 @@ class TestCVQPSolver:
 
         cvqp = CVQP(params)
 
-        # Solve without warm start
+        # Cold start from zero
         results_cold = cvqp.solve(verbose=False)
 
-        # Solve with warm start
+        # Warm start from random initialization
         warm_start = np.random.randn(5) * 0.1
         results_warm = cvqp.solve(warm_start=warm_start, verbose=False)
 
-        # Both should find optimal solutions
+        # Both should converge to optimal solutions
         assert results_cold.problem_status == "optimal"
         assert results_warm.problem_status == "optimal"
         assert_feasible(results_cold, params)
@@ -238,13 +235,9 @@ class TestValidation:
         d = 3
         valid_params = dict(P=np.eye(d), q=np.ones(d), A=np.ones((5, d)), B=np.eye(d), l=-np.ones(d), u=np.ones(d), beta=0.9, kappa=0.1)
 
-        # Valid params should work
         CVQPParams(**valid_params)
-
-        # Invalid beta
         with pytest.raises(ValueError, match="beta must be between 0 and 1"):
             CVQPParams(**{**valid_params, "beta": 0.0})
 
-        # Dimension mismatches
         with pytest.raises(ValueError, match="Incompatible dimensions"):
             CVQPParams(**{**valid_params, "q": np.ones(d + 1)})

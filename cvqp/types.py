@@ -35,10 +35,8 @@ def _validate_dimensions(params):
 
     if params.A.shape[1] != n:
         raise ValueError(f"Incompatible dimensions: A({params.A.shape}) and q({params.q.shape})")
-
     if params.B.shape[1] != n:
         raise ValueError(f"Incompatible dimensions: B({params.B.shape}) and q({params.q.shape})")
-
     if params.l.shape[0] != params.B.shape[0] or params.u.shape[0] != params.B.shape[0]:
         raise ValueError(f"Incompatible dimensions: l({params.l.shape}), u({params.u.shape}), and B({params.B.shape})")
 
@@ -103,18 +101,10 @@ class CVQPResults:
 
     @property
     def is_optimal(self) -> bool:
-        """Check if the solver converged to an optimal solution.
-
-        Returns:
-            True if the solver status is 'optimal', False otherwise.
-        """
+        """True if solver status is 'optimal'."""
         return self.problem_status == "optimal"
 
     @property
     def value(self) -> float:
-        """Get the optimal objective value.
-
-        Returns:
-            The objective value from the last iteration, or NaN if no iterations completed.
-        """
+        """Optimal objective value, or NaN if no iterations completed."""
         return self.objval[-1] if self.objval else float("nan")

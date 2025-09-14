@@ -124,7 +124,7 @@ print(f"Sum of {k} largest: {sum(sorted(x, reverse=True)[:k]):.2f}")
 
 ## Benchmarks
 
-See `examples/` for benchmark results against MOSEK and Clarabel on a suite of large-scale problems.
+See `benchmarks/` for benchmark results against MOSEK and Clarabel on a suite of large-scale problems.
 
 ## Citation
 
