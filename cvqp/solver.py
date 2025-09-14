@@ -106,7 +106,7 @@ class CVQP:
 
     def _scale_problem(self):
         """Scale problem data for better numerical conditioning."""
-        self.scale = max(-self.params.A.min(), self.params.A.max())
+        self.scale = max(np.max(np.abs(self.params.A)), 1.0)
         self.params.A = self._scale_matrix(self.params.A, self.scale)
         self.params.q = self._scale_matrix(self.params.q, self.scale)
         if self.params.P is not None:
