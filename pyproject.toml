@@ -51,4 +51,4 @@ build-backend = "setuptools.build_meta"
 include = ["cvqp*"]
 
 [tool.setuptools.package-data]
-cvqp = ["libs/*.cpp", "libs/*.h"]
+cvqp = ["libs/*.cpp", "libs/*.h", "py.typed"]
