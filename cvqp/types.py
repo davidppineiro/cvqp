@@ -3,6 +3,7 @@ Type definitions for the CVQP solver.
 """
 
 from dataclasses import dataclass
+from typing import Union, Optional
 import numpy as np
 import scipy as sp
 
@@ -45,10 +46,10 @@ def _validate_dimensions(params):
 class CVQPParams:
     """Parameters defining a CVQP problem instance."""
 
-    P: np.ndarray | sp.sparse.spmatrix | None  # Quadratic cost matrix (or None for linear)
+    P: Optional[Union[np.ndarray, sp.sparse.spmatrix]]  # Quadratic cost matrix (or None for linear)
     q: np.ndarray  # Linear cost vector
     A: np.ndarray  # CVaR constraint matrix
-    B: np.ndarray | sp.sparse.spmatrix  # Linear constraint matrix
+    B: Union[np.ndarray, sp.sparse.spmatrix]  # Linear constraint matrix
     l: np.ndarray  # Lower bounds for Bx
     u: np.ndarray  # Upper bounds for Bx
     beta: float  # Probability level for CVaR (0 < beta < 1)

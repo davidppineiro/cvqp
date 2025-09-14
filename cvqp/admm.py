@@ -4,6 +4,7 @@ CVQP: A solver for CVaR-constrained quadratic programs.
 
 import logging
 import time
+from typing import Union, Optional
 import numpy as np
 import scipy as sp
 
@@ -38,7 +39,7 @@ class CVQP:
     def __init__(self, params: CVQPParams):
         self.params = params
 
-    def solve(self, warm_start: np.ndarray | None = None, verbose: bool = False, options: CVQPConfig | None = None) -> CVQPResults:
+    def solve(self, warm_start: Optional[np.ndarray] = None, verbose: bool = False, options: Optional[CVQPConfig] = None) -> CVQPResults:
         """Solve the CVaR-constrained quadratic program using ADMM.
 
         Args:
@@ -188,7 +189,7 @@ class CVQP:
                 self.factor = sp.linalg.lu_factor(self.M)
                 self.use_cholesky = False
 
-    def _initialize_variables(self, warm_start: np.ndarray | None) -> tuple:
+    def _initialize_variables(self, warm_start: Optional[np.ndarray]) -> tuple:
         """Set up initial optimization variables and results storage."""
         n = self.params.q.shape[0]
         B_rows = self.params.B.shape[0]
@@ -382,15 +383,15 @@ class CVQP:
 
 
 def solve_cvqp(
-    P: np.ndarray | sp.sparse.spmatrix | None = None,
+    P: Optional[Union[np.ndarray, sp.sparse.spmatrix]] = None,
     q: np.ndarray = None,
     A: np.ndarray = None,
-    B: np.ndarray | sp.sparse.spmatrix = None,
+    B: Union[np.ndarray, sp.sparse.spmatrix] = None,
     l: np.ndarray = None,
     u: np.ndarray = None,
     beta: float = None,
     kappa: float = None,
-    warm_start: np.ndarray | None = None,
+    warm_start: Optional[np.ndarray] = None,
     verbose: bool = False,
     **solver_options,
 ) -> CVQPResults:
