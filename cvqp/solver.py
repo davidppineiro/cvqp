@@ -20,7 +20,16 @@ _STATUS_OPTIMAL = "optimal"
 _STATUS_TIMEOUT = "timeout"
 _STATUS_UNKNOWN = "unknown"
 
-logging.basicConfig(level=logging.INFO, format=_LOG_FORMAT, datefmt=_LOG_DATE_FORMAT)
+logger = logging.getLogger(__name__)
+
+
+def _setup_cvqp_logging():
+    if not logger.handlers:
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter(_LOG_FORMAT, _LOG_DATE_FORMAT)
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+        logger.setLevel(logging.INFO)
 
 
 class CVQP:
@@ -57,6 +66,7 @@ class CVQP:
         rho = self.options.rho
 
         if self.verbose:
+            _setup_cvqp_logging()
             self._log_header()
 
         # Main iteration loop
@@ -334,23 +344,23 @@ class CVQP:
     def _log_header(self):
         """Print solver header and column titles."""
         sep = "=" * _SEPARATOR_WIDTH
-        logging.info(sep)
-        logging.info("CVQP solver".center(_SEPARATOR_WIDTH))
-        logging.info(sep)
-        logging.info("{:<6} {:<12} {:<12} {:<12} {:<12} {:<12} {:<12}".format("iter", "r_norm", "eps_pri", "s_norm", "eps_dual", "rho", "obj_val"))
-        logging.info("-" * _SEPARATOR_WIDTH)
+        logger.info(sep)
+        logger.info("CVQP solver".center(_SEPARATOR_WIDTH))
+        logger.info(sep)
+        logger.info("{:<6} {:<12} {:<12} {:<12} {:<12} {:<12} {:<12}".format("iter", "r_norm", "eps_pri", "s_norm", "eps_dual", "rho", "obj_val"))
+        logger.info("-" * _SEPARATOR_WIDTH)
 
     def _log_iteration(self, i, r_norm, eps_pri, s_norm, eps_dual, rho, objval):
         """Print iteration progress."""
-        logging.info("{:<6} {:<12.3e} {:<12.3e} {:<12.3e} {:<12.3e} {:<12.2e} {:<12.3e}".format(i, r_norm, eps_pri, s_norm, eps_dual, rho, objval))
+        logger.info("{:<6} {:<12.3e} {:<12.3e} {:<12.3e} {:<12.3e} {:<12.2e} {:<12.3e}".format(i, r_norm, eps_pri, s_norm, eps_dual, rho, objval))
 
     def _log_final(self, results):
         """Print final results."""
         sep = "=" * _SEPARATOR_WIDTH
-        logging.info(sep)
-        logging.info(f"Optimal value: {results.objval[-1]:.3e}")
-        logging.info(f"Solver took {results.solve_time:.2f} seconds")
-        logging.info(f"Problem status: {results.problem_status}")
+        logger.info(sep)
+        logger.info(f"Optimal value: {results.objval[-1]:.3e}")
+        logger.info(f"Solver took {results.solve_time:.2f} seconds")
+        logger.info(f"Problem status: {results.problem_status}")
 
     def _compute_objective(self, x: np.ndarray) -> float:
         """Calculate objective value with efficient handling of P."""
