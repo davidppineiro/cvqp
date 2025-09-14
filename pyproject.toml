@@ -1,11 +1,18 @@
-[tool.poetry]
+[project]
 name = "cvqp"
 version = "0.1.0"
 description = "A Python implementation of the CVQP solver for CVaR-constrained quadratic programs"
-authors = ["David Pérez Piñeiro", "Eric Luxenberg"]
-license = "Apache-2.0"
+authors = [
+    {name = "David Pérez Piñeiro"},
+    {name = "Eric Luxenberg"}
+]
+license = {text = "Apache-2.0"}
 readme = "README.md"
-repository = "https://github.com/cvxgrp/cvqp"
+requires-python = ">=3.11,<4.0"
+dependencies = [
+    "numpy>=2.1.3",
+    "scipy>=1.14.1",
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
@@ -14,31 +21,34 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Mathematics",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-packages = [{include = "cvqp"}]
 
-[tool.poetry.dependencies]
-python = ">=3.11,<4.0"
-numpy = "^2.1.3"
-scipy = "^1.14.1"
-tqdm = "^4.67.1"
-cvxpy = "^1.6.0"
-matplotlib = "^3.9.2"
+[project.urls]
+Repository = "https://github.com/cvxgrp/cvqp"
 
-[tool.poetry.group.dev.dependencies]
-ipykernel = "^6.29.5"
-jupyter = "^1.1.1"
-mosek = {version = "^10.2.8", python = ">=3.11,<3.13"}
-pyinstrument = "^5.0.0"
-pandas = "^2.2.3"
-black = "^24.10.0"
-line-profiler = "^4.2.0"
-pytest = "^8.3.5"
-pre-commit = "^4.2.0"
-ruff = "^0.12.0"
-
-[tool.poetry.group.build.dependencies]
-pybind11 = "^2.13.6"
+[project.optional-dependencies]
+test = ["pytest>=8.3.5", "cvxpy>=1.6.0"]
+dev = [
+    "ipykernel>=6.29.5",
+    "jupyter>=1.1.1",
+    "mosek>=10.2.8",
+    "pyinstrument>=5.0.0",
+    "pandas>=2.2.3",
+    "black>=24.10.0",
+    "line-profiler>=4.2.0",
+    "pytest>=8.3.5",
+    "pre-commit>=4.2.0",
+    "ruff>=0.12.0",
+    "tqdm>=4.67.1",
+    "cvxpy>=1.6.0",
+    "matplotlib>=3.9.2"
+]
 
 [build-system]
-requires = ["poetry-core>=1.0.0", "setuptools>=42", "wheel", "pybind11>=2.10.0"]
+requires = ["setuptools>=61", "pybind11>=2.10.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["cvqp*"]
+
+[tool.setuptools.package-data]
+cvqp = ["libs/*.cpp", "libs/*.h"]
