@@ -3,7 +3,7 @@
 [![PyPI version](https://img.shields.io/pypi/v/cvqp.svg)](https://pypi.org/project/cvqp/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-CVQP is a Python library with methods to solve CVaR-constrained quadratic programs and to project vectors onto the feasible set defined by a CVaR constraint (or equivalently by a sum-of-k-largest constraint). These methods are fast and scalable to large-scale problems where standard solvers will fail or be prohibitively slow. For details, see our [paper](https://web.stanford.edu/~boyd/papers/cvar_qp.html).
+CVQP is a Python library with fast, scalable methods for solving large-scale CVaR-constrained quadratic programs and Euclidean projection onto CVaR constraints (or equivalent sum-of-k-largest constraints). These methods handle problems where standard solvers are prohibitively slow or fail. For details, see our [paper](https://web.stanford.edu/~boyd/papers/cvar_qp.html).
 
 ## Installation
 
