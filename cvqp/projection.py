@@ -7,23 +7,7 @@ from .libs import proj_sum_largest_cpp
 
 
 def proj_sum_largest(x: np.ndarray, k: int, alpha: float) -> np.ndarray:
-    """Compute the Euclidean projection onto the sum-of-k-largest constraint.
-
-    Given a vector x, finds the closest point (in Euclidean distance) that
-    satisfies the constraint that the sum of its k largest elements is at most alpha.
-
-    Args:
-        x: Input vector to project.
-        k: Number of largest elements to constrain (1 <= k <= len(x)).
-        alpha: Upper bound on sum of k largest elements.
-
-    Returns:
-        Projected vector with same shape as x, satisfying the sum-of-k-largest constraint.
-
-    Raises:
-        TypeError: If x is not a numpy array.
-        ValueError: If x is not 1D, k is out of bounds, or alpha is negative.
-    """
+    """Project onto sum-of-k-largest constraint: sum of k largest elements <= alpha."""
     # Input validation
     if not isinstance(x, np.ndarray):
         raise TypeError(f"Input x must be a numpy array, got {type(x)}")
@@ -55,24 +39,7 @@ def proj_sum_largest(x: np.ndarray, k: int, alpha: float) -> np.ndarray:
 
 
 def proj_cvar(x: np.ndarray, beta: float, kappa: float) -> np.ndarray:
-    """Compute the Euclidean projection onto the CVaR constraint.
-
-    Given a vector x, finds the closest point (in Euclidean distance) that
-    satisfies the constraint CVaR_beta(x) <= kappa, where CVaR_beta is the
-    Conditional Value at Risk at confidence level beta.
-
-    Args:
-        x: Input vector to project.
-        beta: Confidence level for CVaR (0 < beta < 1).
-        kappa: Upper bound on CVaR value.
-
-    Returns:
-        Projected vector with same shape as x, satisfying CVaR_beta(result) <= kappa.
-
-    Raises:
-        TypeError: If x is not a numpy array.
-        ValueError: If x is not 1D, beta is out of bounds, or kappa is negative.
-    """
+    """Project onto CVaR constraint: CVaR_beta(x) <= kappa."""
     # Input validation
     if not isinstance(x, np.ndarray):
         raise TypeError(f"Input x must be a numpy array, got {type(x)}")
