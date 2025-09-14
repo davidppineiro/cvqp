@@ -74,7 +74,9 @@ class CVQP:
             Bx = self._ensure_dense(self.params.B @ x)
             u_tilde += self.options.alpha_over * Bx + (1 - self.options.alpha_over) * z_tilde_old - z_tilde
 
-            # Check convergence and handle logging
+            results.objval.append(self._compute_objective(x))
+            results.rho.append(rho)
+
             should_terminate, status = self._check_convergence_and_log(i, start_time, x, z, z_tilde, z_old, z_tilde_old, rho, results)
             if should_terminate:
                 results.problem_status = status
@@ -242,8 +244,7 @@ class CVQP:
         r_norm, s_norm, Ax, At_z = self._compute_residuals(x, z, z_tilde, z_old, z_tilde_old, rho)
         eps_pri, eps_dual = self._compute_tolerances(Ax, z, z_tilde, At_z, rho)
 
-        # Record iteration data
-        self._record_iteration(results, x, r_norm, s_norm, eps_pri, eps_dual, rho)
+        self._record_iteration(results, r_norm, s_norm, eps_pri, eps_dual)
 
         # Log progress if verbose
         if self.verbose:
@@ -330,20 +331,16 @@ class CVQP:
     def _record_iteration(
         self,
         results: CVQPResults,
-        x: np.ndarray,
         r_norm: float,
         s_norm: float,
         eps_pri: float,
         eps_dual: float,
-        rho: float,
     ):
-        """Record iteration data for convergence analysis."""
-        results.objval.append(self._compute_objective(x))
+        """Record convergence metrics."""
         results.r_norm.append(r_norm)
         results.s_norm.append(s_norm)
         results.eps_pri.append(eps_pri)
         results.eps_dual.append(eps_dual)
-        results.rho.append(rho)
 
     def _unscale_problem(self):
         """Restore original scaling for final results."""
