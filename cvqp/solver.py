@@ -140,29 +140,49 @@ class CVQP:
         else:
             return matrix / scale_factor
 
-    def _compute_system_matrix(self, rho: float) -> np.ndarray:
-        """Compute the system matrix M = P + rho*(A^T*A + B^T*B).
-
-        This is the coefficient matrix for the x-update step in ADMM.
-        """
-        BtB_dense = self._ensure_dense(self.BtB)
-        penalty_term = rho * (self.AtA + BtB_dense)
+    def _compute_system_matrix(self, rho: float):
+        """Compute the system matrix M = P + rho*(A^T*A + B^T*B)."""
+        penalty_term = rho * (self.AtA + self.BtB)
 
         if self.params.P is None:
-            return penalty_term
+            M = penalty_term
         else:
-            P_dense = self._ensure_dense(self.params.P)
-            return P_dense + penalty_term
+            M = self.params.P + penalty_term
+
+        # Convert to dense only if both components are dense
+        if not sp.sparse.issparse(M):
+            return M
+        elif not sp.sparse.issparse(self.AtA) and not sp.sparse.issparse(self.BtB) and (self.params.P is None or not sp.sparse.issparse(self.params.P)):
+            return M.toarray()
+        else:
+            return M
 
     def _update_M_factor(self, rho: float):
         """Update and factorize the linear system matrix."""
         self.M = self._compute_system_matrix(rho)
-        try:
-            self.factor = sp.linalg.cho_factor(self.M)
-            self.use_cholesky = True
-        except np.linalg.LinAlgError:
-            self.factor = sp.linalg.lu_factor(self.M)
-            self.use_cholesky = False
+
+        if sp.sparse.issparse(self.M):
+            # Use sparse factorization
+            try:
+                from scikits.sparse.cholmod import cholesky
+
+                self.factor = cholesky(self.M)
+                self.use_cholesky = True
+                self.use_sparse = True
+            except ImportError:
+                # Fallback to scipy sparse LU
+                self.factor = sp.sparse.linalg.splu(self.M)
+                self.use_cholesky = False
+                self.use_sparse = True
+        else:
+            # Dense factorization
+            self.use_sparse = False
+            try:
+                self.factor = sp.linalg.cho_factor(self.M)
+                self.use_cholesky = True
+            except np.linalg.LinAlgError:
+                self.factor = sp.linalg.lu_factor(self.M)
+                self.use_cholesky = False
 
     def _initialize_variables(self, warm_start: np.ndarray | None) -> tuple:
         """Set up initial optimization variables and results storage."""
@@ -194,10 +214,17 @@ class CVQP:
     ) -> np.ndarray:
         """Perform x-minimization step of ADMM."""
         rhs = -self.params.q + rho * (self.params.A.T @ (z - u)) + rho * (self.params.B.T @ (z_tilde - u_tilde))
-        if self.use_cholesky:
-            return sp.linalg.cho_solve(self.factor, rhs)
+
+        if self.use_sparse:
+            if self.use_cholesky:
+                return self.factor.solve_A(rhs)  # CHOLMOD solve
+            else:
+                return self.factor.solve(rhs)  # Sparse LU solve
         else:
-            return sp.linalg.lu_solve(self.factor, rhs)
+            if self.use_cholesky:
+                return sp.linalg.cho_solve(self.factor, rhs)
+            else:
+                return sp.linalg.lu_solve(self.factor, rhs)
 
     def _z_update(self, x: np.ndarray, z: np.ndarray, u: np.ndarray, alpha_over: float) -> np.ndarray:
         """Update z variable with projection onto sum-k-largest constraint."""
