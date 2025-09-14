@@ -89,6 +89,10 @@ def proj_cvar(x: np.ndarray, beta: float, kappa: float) -> np.ndarray:
     # Convert CVaR parameters to sum-of-k-largest parameters
     n_scenarios = x.shape[0]
     k = int((1 - beta) * n_scenarios)
-    alpha = kappa * k
 
+    # Handle k=0 case: constraint is vacuous, return identity projection
+    if k == 0:
+        return x.copy()
+
+    alpha = kappa * k
     return proj_sum_largest(x, k, alpha)
