@@ -1,6 +1,6 @@
 [project]
 name = "cvqp"
-version = "0.2.0"
+version = "0.2.1"
 description = "A Python implementation of the CVQP solver for CVaR-constrained quadratic programs"
 authors = [
     {name = "David Pérez Piñeiro"},
@@ -56,3 +56,19 @@ include = ["cvqp*"]
 
 [tool.setuptools.package-data]
 cvqp = ["libs/*.cpp", "libs/*.h", "py.typed"]
+
+[tool.cibuildwheel]
+build-verbosity = 1
+test-requires = "pytest"
+test-command = "pytest {project}/tests -v"
+# Skip PyPy and musllinux for now
+skip = "pp* *-musllinux*"
+
+[tool.cibuildwheel.linux]
+before-all = "yum install -y gcc-c++ || apt-get update && apt-get install -y g++"
+
+[tool.cibuildwheel.macos]
+archs = ["x86_64", "arm64"]
+
+[tool.cibuildwheel.windows]
+archs = ["AMD64"]
