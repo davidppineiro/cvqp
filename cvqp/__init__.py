@@ -2,7 +2,7 @@
 CVQP: A Python-embedded solver for CVaR-constrained quadratic programs.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 from .types import CVQPParams, CVQPConfig, CVQPResults
 from .admm import CVQP, solve_cvqp
