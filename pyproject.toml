@@ -48,7 +48,7 @@ dev = [
 ]
 
 [build-system]
-requires = ["setuptools>=61", "pybind11>=2.10.0"]
+requires = ["setuptools>=61", "wheel", "pybind11>=2.10.0", "numpy>=1.20.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
@@ -63,9 +63,7 @@ test-requires = "pytest"
 test-command = "pytest {project}/tests -v"
 # Skip PyPy and musllinux for now
 skip = "pp* *-musllinux*"
-
-[tool.cibuildwheel.linux]
-before-all = "yum install -y gcc-c++ || apt-get update && apt-get install -y g++"
+before-build = "pip install numpy pybind11"
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "arm64"]
